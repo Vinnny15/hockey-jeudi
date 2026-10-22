@@ -171,7 +171,7 @@ pre.copy{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);
       <div id="add-msg" class="note"></div>
     </div>
 
-    <p class="note" id="foot-note">La cote va de 1 (moins fort) à 5 (plus fort).</p>
+    <p class="note" id="foot-note" hidden>La cote va de 1 (meilleur joueur) à 5. La force d'une équipe additionne 5 points pour un joueur coté 1, 4 pour un coté 2, et ainsi de suite.</p>
   </section>
 
   <div class="row">
@@ -280,6 +280,7 @@ $("#logout").onclick=()=>{logout();setStatus("À jour","")};
 function render(){
   $("#admin-open").hidden=canWrite||!configured()||!$("#login").hidden;
   $("#admin-bar").hidden=!canWrite;
+  $("#foot-note").hidden=!canWrite;
   $("#paste-box").hidden=!canWrite;
   $("#add-box").hidden=!(canWrite&&managing);
   $("#manage-toggle").classList.toggle("on",managing);
@@ -305,7 +306,7 @@ function rowHTML(p){
   const dis=canWrite?"":"disabled";
   const cote=p.pos==="G"?'<span class="nog">—</span>':
     canWrite?`<select data-f="cote" aria-label="Cote de ${esc(full(p))}">${[1,2,3,4,5].map(n=>`<option ${n===p.cote?"selected":""}>${n}</option>`).join("")}</select>`
-    :`<span class="cote-ro">${p.cote}</span>`;
+    :"";
   const manage=canWrite&&managing?`<div class="manage">
       <label>Position <select data-f="pos">${["A","D","G"].map(x=>`<option value="${x}" ${x===p.pos?"selected":""}>${POSNAME[x]}</option>`).join("")}</select></label>
       <label><input type="checkbox" data-f="sub" ${p.sub?"checked":""}> Substitut</label>
@@ -390,7 +391,9 @@ $("#apply-paste").onclick=()=>{
 };
 
 /* ---------- Formation des équipes ---------- */
-const sum=a=>a.reduce((s,p)=>s+(p.cote||0),0);
+// La cote 1 est le meilleur joueur : on équilibre la force (6 - cote), pas la cote brute
+const force=p=>p.pos==="G"?0:6-(p.cote||3);
+const sum=a=>a.reduce((s,p)=>s+force(p),0);
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function build(){
   const on=players.filter(p=>p.present);
@@ -415,26 +418,27 @@ function build(){
   const yan=G.find(p=>full(p)===WILD_G), others=shuffle(G.filter(p=>p!==yan));
   const goalies=yan?[others,[yan]]:[others.filter((_,k)=>k%2===0),others.filter((_,k)=>k%2===1)];
   return TEAMS.map((t,i)=>({...t,G:goalies[i],
-    D:(pick?pick.d[i]:[]).sort((x,y)=>y.cote-x.cote),
-    A:(pick?pick.a[i]:[]).sort((x,y)=>y.cote-x.cote)}));
+    // ordre alphabétique : l'affichage ne révèle pas le classement des joueurs
+    D:(pick?pick.d[i]:[]).sort((x,y)=>full(x).localeCompare(full(y),"fr")),
+    A:(pick?pick.a[i]:[]).sort((x,y)=>full(x).localeCompare(full(y),"fr"))}));
 }
-function line(title,arr,showSum){
-  return `<div class="line"><h3><span>${title}</span>${showSum?`<span>${sum(arr)}</span>`:""}</h3><ul>${
-    arr.length?arr.map(p=>`<li><span>${esc(full(p))}${p.sub?'<span class="sub-tag">sub</span>':""}${p.asD?'<span class="flex-tag">attaquant à la D</span>':""}</span>${p.pos!=="G"?`<span class="r">${p.cote}</span>`:""}</li>`).join("")
+function line(title,arr){
+  return `<div class="line"><h3><span>${title}</span></h3><ul>${
+    arr.length?arr.map(p=>`<li><span>${esc(full(p))}${p.sub?'<span class="sub-tag">sub</span>':""}${p.asD?'<span class="flex-tag">attaquant à la D</span>':""}</span></li>`).join("")
     :'<li><span class="note">Personne</span></li>'}</ul></div>`;
 }
 function thursdayLabel(){const d=new Date();d.setDate(d.getDate()+(4-d.getDay()+7)%7);return d.toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long"})}
 function renderTeams(teams){
   $("#result").hidden=false;
-  $("#teams").innerHTML=teams.map(t=>{const tot=sum(t.D)+sum(t.A);return `<article class="team ${t.key}">
-    <div class="head"><div><div class="name">${t.name}</div><div class="jersey">${t.jersey} · ${t.D.length+t.A.length} patineurs</div></div>
-    <div class="score">${tot}<small>Cote totale</small></div></div>
-    <div class="body">${line("Gardien",t.G,false)}${line("Défense",t.D,true)}${line("Attaque",t.A,true)}</div></article>`}).join("");
+  $("#teams").innerHTML=teams.map(t=>`<article class="team ${t.key}">
+    <div class="head"><div><div class="name">${t.name}</div><div class="jersey">${t.jersey} · ${t.D.length+t.A.length} patineurs</div></div></div>
+    <div class="body">${line("Gardien",t.G)}${line("Défense",t.D)}${line("Attaque",t.A)}</div></article>`).join("");
   const [a,b]=teams, diff=Math.abs(sum(a.D)+sum(a.A)-sum(b.D)-sum(b.A)), warn=[];
   if(a.G.length!==1||b.G.length!==1) warn.push(`<span class="chip warn">${a.G.length+b.G.length} gardien(s) présent(s) : il en faut un par équipe</span>`);
   if(a.D.length<2||b.D.length<2) warn.push('<span class="chip warn">Peu de défenseurs</span>');
-  $("#verdict").innerHTML=`<span class="big">${diff===0?"Match égal":"Écart de "+diff+" point"+(diff>1?"s":"")}</span>
-    <span class="chip">Défense ${sum(a.D)} – ${sum(b.D)}</span><span class="chip">Attaque ${sum(a.A)} – ${sum(b.A)}</span>${warn.join("")}`;
+  // l'écart de force reste visible seulement en mode administrateur
+  const adminInfo=canWrite?`<span class="chip">Écart de force : ${diff} (admin seulement)</span>`:"";
+  $("#verdict").innerHTML=`<span class="big">Alignements</span>${adminInfo}${warn.join("")}`;
   const txt=[`Hockey du ${thursdayLabel()}`,""].concat(...teams.map(t=>[
     `${t.name.toUpperCase()} (${t.jersey.toLowerCase()})`,
     `G : ${t.G.map(full).join(", ")||"à trouver"}`,
