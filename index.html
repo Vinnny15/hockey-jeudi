@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hockey du jeudi</title>
+<meta name="theme-color" content="#b3202a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout : feuille de match en une colonne, présences partagées en haut, alignements en bas, deux cartes d'équipe côte à côte sur grand écran */
+:root{
+  --bg:#eef2f5; --surface:#ffffff; --ink:#14202b; --muted:#5d6b78; --line:#d5dde4;
+  --accent:#b3202a; --accent-ink:#ffffff;
+  --pf:#1f4fa3; --pf-soft:#e7eefb;
+  --wild:#155c3b; --wild-2:#e5b81c; --wild-soft:#e6f2ea;
+  --warn:#9a5b00; --warn-soft:#fff3dc; --ok:#1d6b3a; --ok-soft:#e3f3e8;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e151c; --surface:#16202a; --ink:#e8eef3; --muted:#93a2af; --line:#2a3743;
+  --accent:#e0464f; --accent-ink:#ffffff;
+  --pf:#7ea6ee; --pf-soft:#1a2a45; --wild:#5cc28e; --wild-2:#f0c93a; --wild-soft:#15301f;
+  --warn:#f0b54e; --warn-soft:#33270f; --ok:#6fd39a; --ok-soft:#14301f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e151c; --surface:#16202a; --ink:#e8eef3; --muted:#93a2af; --line:#2a3743;
+  --accent:#e0464f; --accent-ink:#ffffff;
+  --pf:#7ea6ee; --pf-soft:#1a2a45; --wild:#5cc28e; --wild-2:#f0c93a; --wild-soft:#15301f;
+  --warn:#f0b54e; --warn-soft:#33270f; --ok:#6fd39a; --ok-soft:#14301f; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:960px;margin:0 auto;padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:22px}
+header h1{font-family:var(--display);font-weight:700;font-size:2.3rem;line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+header h1 span{color:var(--accent)}
+header p{margin:6px 0 0;color:var(--muted)}
+h2{font-family:var(--display);font-weight:600;font-size:1.35rem;text-transform:uppercase;letter-spacing:.04em;margin:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.spread{justify-content:space-between}
+.tally{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:var(--display);font-weight:600;font-size:.95rem;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.chip.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.status{font-size:.85rem;padding:3px 10px;border-radius:999px;background:var(--bg);color:var(--muted)}
+.status.live{background:var(--ok-soft);color:var(--ok)}
+.status.ro{background:var(--warn-soft);color:var(--warn)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 12px;font-weight:500}
+button:hover{border-color:var(--muted)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-family:var(--display);font-size:1.2rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:12px 22px}
+button.primary:hover{filter:brightness(1.08)}
+button.small{padding:5px 10px;font-size:.88rem}
+button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+button.danger{color:var(--accent);border-color:var(--accent)}
+details summary{cursor:pointer;font-weight:600;color:var(--muted)}
+details[open] summary{margin-bottom:8px}
+textarea,input[type=text]{width:100%;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+textarea{min-height:110px}
+.note{font-size:.88rem;color:var(--muted);margin:0}
+.msg{font-size:.9rem;padding:8px 10px;border-radius:8px;background:var(--warn-soft);color:var(--warn)}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);text-align:center}
+
+.group-title{font-family:var(--display);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.95rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px}
+.p{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);min-width:0}
+.p.on{border-color:var(--ink)}
+.p:not(.on) .who{opacity:.55}
+.p input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);margin:0}
+.p label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.pos{font-family:var(--display);font-weight:700;font-size:.9rem;width:24px;height:24px;display:grid;place-items:center;border-radius:5px;background:var(--bg);border:1px solid var(--line)}
+.pos.G{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.p select{font:inherit;font-size:.88rem;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-variant-numeric:tabular-nums}
+.p .nog{width:44px;text-align:center;color:var(--muted);font-size:.85rem}
+.p .cote-ro{width:44px;text-align:center;font-variant-numeric:tabular-nums}
+.manage{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:6px;border-top:1px dashed var(--line)}
+.manage label{display:flex;gap:5px;align-items:center;font-size:.88rem;white-space:nowrap}
+.manage .grow{flex:1}
+
+.add{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end}
+.add label{display:grid;gap:3px;font-size:.85rem;color:var(--muted)}
+.add select{font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+@media (max-width:560px){.add{grid-template-columns:1fr 1fr}}
+
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.team{border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--surface);min-width:0}
+.team .head{padding:12px 14px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.team.pf .head{background:var(--pf-soft);border-top:6px solid var(--pf)}
+.team.wild .head{background:var(--wild-soft);border-top:6px solid var(--wild);box-shadow:inset 0 3px 0 var(--wild-2)}
+.team .name{font-family:var(--display);font-weight:700;font-size:1.5rem;text-transform:uppercase;line-height:1}
+.team.pf .name{color:var(--pf)} .team.wild .name{color:var(--wild)}
+.team .jersey{font-size:.85rem;color:var(--muted)}
+.team .score{font-family:var(--display);font-weight:700;font-size:1.6rem;font-variant-numeric:tabular-nums;text-align:right;line-height:1}
+.team .score small{display:block;font-size:.75rem;color:var(--muted);font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+.team .body{padding:10px 14px 14px;display:grid;gap:10px}
+.line h3{margin:0 0 4px;font-family:var(--display);font-weight:600;font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+.line ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.line li{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.line li:last-child{border-bottom:0}
+.line li .r{font-variant-numeric:tabular-nums;color:var(--muted)}
+.sub-tag{font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-left:6px}
+.flex-tag{font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--pf);margin-left:6px}
+.verdict{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.verdict .big{font-family:var(--display);font-weight:700;font-size:1.2rem;text-transform:uppercase;letter-spacing:.04em}
+pre.copy{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin:0;font-family:var(--body);font-size:.9rem;max-height:240px;overflow:auto}
+@media (prefers-reduced-motion:no-preference){.team{animation:in .25s ease-out}@keyframes in{from{transform:translateY(6px)}to{transform:none}}}
+</style>
+<style>body{margin:0} input[type=password]{font:inherit;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Hockey du <span>jeudi</span></h1>
+    <p>Ligue amicale du jeudi soir. Tout le monde voit les présences et les équipes; les administrateurs ajustent les cotes et les présences.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="h-pres">
+    <div class="row spread">
+      <h2 id="h-pres">Présences</h2>
+      <div class="row">
+        <span class="status" id="status">Chargement…</span>
+        <div class="tally" id="tally"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="small" id="admin-open">Mode administrateur</button>
+      <form class="row" id="login" hidden>
+        <input type="password" id="pin" inputmode="numeric" autocomplete="off" placeholder="NIP admin" style="width:130px" aria-label="NIP administrateur">
+        <button type="submit" class="small">Entrer</button>
+        <span class="note" id="login-msg"></span>
+      </form>
+    </div>
+
+    <div class="row" id="admin-bar" hidden>
+      <button class="small" id="manage-toggle">Gérer les joueurs</button>
+      <button class="small" id="reset-week">Nouvelle semaine</button>
+      <button class="small" id="logout">Quitter le mode admin</button>
+      <span class="note" id="reset-msg"></span>
+    </div>
+
+    <details id="paste-box" hidden>
+      <summary>Coller les réponses du sondage Messenger</summary>
+      <div style="display:grid;gap:8px">
+        <textarea id="paste" placeholder="Un nom par ligne, par exemple :&#10;Vincent Tourigny&#10;Ghyslain Lizotte&#10;J-F Gagnon"></textarea>
+        <div class="row">
+          <button id="apply-paste" class="small">Cocher ces joueurs seulement</button>
+          <span class="note">Les autres seront décochés. Les noms non reconnus seront signalés.</span>
+        </div>
+        <div id="paste-msg" class="msg" hidden></div>
+      </div>
+    </details>
+
+    <div id="lists">
+      <div class="empty" id="empty">Chargement de la liste des joueurs…</div>
+    </div>
+
+    <div id="add-box" hidden style="display:grid;gap:8px">
+      <div class="group-title"><span>Ajouter un joueur</span></div>
+      <form class="add" id="add-form">
+        <label>Prénom<input type="text" id="add-prenom" required autocomplete="off"></label>
+        <label>Nom<input type="text" id="add-nom" required autocomplete="off"></label>
+        <label>Position<select id="add-pos"><option value="A">Attaquant</option><option value="D">Défenseur</option><option value="G">Gardien</option></select></label>
+        <label>Cote<select id="add-cote"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+        <label style="flex-direction:row;display:flex;gap:6px;align-items:center"><input type="checkbox" id="add-sub"> Substitut</label>
+        <button type="submit" class="small">Ajouter</button>
+      </form>
+      <div id="add-msg" class="note"></div>
+    </div>
+
+    <p class="note" id="foot-note">La cote va de 1 (moins fort) à 5 (plus fort).</p>
+  </section>
+
+  <div class="row">
+    <button class="primary" id="go">Former les équipes</button>
+    <span class="note" id="go-msg"></span>
+  </div>
+
+  <section id="result" hidden style="display:grid;gap:14px">
+    <div class="verdict" id="verdict"></div>
+    <div class="teams" id="teams"></div>
+    <div class="row">
+      <button id="reshuffle">Remélanger</button>
+      <button id="copy">Copier pour Messenger</button>
+      <span class="note" id="copy-msg"></span>
+    </div>
+    <pre class="copy" id="copy-text"></pre>
+  </section>
+</div>
+
+
+<script>
+/* ===== Configuration ===== */
+// Colle ici l'URL de l'application Web Google Apps Script (finit par /exec)
+const API_URL = "https://script.google.com/macros/s/AKfycbwIuEdqV5EwxRcHlqX0fP6-OV2REaGNFKReoEexQ46j0QZwX0ndShLG574zs9UXqqcV1g/exec";
+const WILD_G = "Yannick Grimard";      // garde toujours pour le Wild quand il est là
+const TEAMS=[{key:"pf",name:"Les Pas Fiables",jersey:"Blanc / bleu"},{key:"wild",name:"Le Wild",jersey:"Vert / jaune"}];
+const POSNAME={A:"Attaquant",D:"Défenseur",G:"Gardien"};
+
+let canWrite=false, managing=false, players=[], lastTeams=null, pin="";
+const $=s=>document.querySelector(s);
+const norm=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+const slug=s=>norm(s).replace(/ /g,"-").slice(0,80);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const full=p=>p.prenom+" "+p.nom;
+const store={get(k){try{return localStorage.getItem(k)||""}catch(e){return ""}},set(k,v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}};
+
+function setStatus(text,cls){const s=$("#status");s.textContent=text;s.className="status "+(cls||"")}
+
+/* ---------- Échanges avec la feuille Google ---------- */
+const configured=()=>/^https:\/\/script\.google\.com\//.test(API_URL);
+function normalize(list){
+  return (list||[]).map(p=>({...p,cote:+p.cote||0,sub:!!p.sub,flex:!!p.flex,present:!!p.present}))
+    .sort((a,b)=>full(a).localeCompare(full(b),"fr"));
+}
+async function load(){
+  if(!configured()){setStatus("Feuille non branchée","ro");render();return}
+  try{
+    const r=await fetch(API_URL,{cache:"no-store"}); const j=await r.json();
+    if(!j.ok) throw new Error(j.error);
+    applyServer(j.players);
+    setStatus(canWrite?"Admin · modifiable":"À jour",canWrite?"live":"");
+  }catch(e){setStatus("Liste indisponible, réessaie plus tard","ro")}
+}
+function applyServer(list){
+  players=normalize(list);
+  const a=document.activeElement;
+  if(a&&$("#lists").contains(a)&&(a.tagName==="SELECT")) {renderTally();return}
+  render();
+}
+let chain=Promise.resolve(), inFlight=0;
+function post(body){
+  inFlight++;
+  const run=chain.then(async()=>{
+    const r=await fetch(API_URL,{method:"POST",body:JSON.stringify({...body,pin})});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||"Erreur");
+    return j;
+  });
+  chain=run.catch(()=>{});
+  return run.finally(()=>{inFlight--});
+}
+async function save(id,patch){
+  try{const j=await post({action:"update",id,patch}); if(!inFlight) applyServer(j.players); setStatus("Enregistré","live")}
+  catch(e){handleWriteError(e)}
+}
+async function saveMany(updates){
+  if(!updates.length) return;
+  try{const j=await post({action:"updateMany",updates}); applyServer(j.players); setStatus("Enregistré","live")}
+  catch(e){handleWriteError(e)}
+}
+function handleWriteError(e){
+  if(String(e.message).includes("NIP")){logout();setStatus("NIP refusé, reconnecte-toi","ro")}
+  else setStatus("Modification non enregistrée, réessaie","ro");
+  load();
+}
+
+/* ---------- Mode administrateur ---------- */
+function logout(){pin="";canWrite=false;managing=false;store.set("hj-pin","");render()}
+$("#admin-open").onclick=()=>{$("#login").hidden=false;$("#admin-open").hidden=true;$("#pin").focus()};
+$("#login").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const tryPin=$("#pin").value.trim(); if(!tryPin) return;
+  $("#login-msg").textContent="Vérification…";
+  try{
+    const r=await fetch(API_URL,{method:"POST",body:JSON.stringify({action:"verify",pin:tryPin})});
+    const j=await r.json();
+    if(!j.ok){$("#login-msg").textContent="NIP invalide.";return}
+    pin=tryPin; canWrite=true; store.set("hj-pin",pin);
+    $("#pin").value=""; $("#login-msg").textContent=""; $("#login").hidden=true;
+    setStatus("Admin · modifiable","live"); render();
+  }catch(err){$("#login-msg").textContent="Impossible de vérifier pour l'instant."}
+});
+$("#logout").onclick=()=>{logout();setStatus("À jour","")};
+
+/* ---------- Affichage de la liste ---------- */
+function render(){
+  $("#admin-open").hidden=canWrite||!configured()||!$("#login").hidden;
+  $("#admin-bar").hidden=!canWrite;
+  $("#paste-box").hidden=!canWrite;
+  $("#add-box").hidden=!(canWrite&&managing);
+  $("#manage-toggle").classList.toggle("on",managing);
+  $("#manage-toggle").textContent=managing?"Terminer la gestion":"Gérer les joueurs";
+  const box=$("#lists");
+  if(!players.length){
+    box.innerHTML=`<div class="empty">${configured()?"Chargement de la liste des joueurs…":"La page n'est pas encore branchée sur la feuille Google des joueurs."}</div>`;
+    renderTally();return;
+  }
+  const groups=[["Réguliers",players.filter(p=>!p.sub)],["Substituts",players.filter(p=>p.sub)]];
+  box.innerHTML=groups.map(([t,arr],gi)=>`
+    <div style="display:grid;gap:8px;${gi?"margin-top:14px":""}">
+      <div class="group-title"><span>${t} <span style="font-weight:500">(${arr.filter(p=>p.present).length}/${arr.length})</span></span>
+      ${canWrite?`<span class="row"><button class="small" data-all="${gi}">Tous</button><button class="small" data-none="${gi}">Aucun</button></span>`:""}</div>
+      <div class="list">${arr.map(rowHTML).join("")||'<div class="note">Personne</div>'}</div>
+    </div>`).join("");
+  box.querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>bulk(groups[+b.dataset.all][1],true));
+  box.querySelectorAll("[data-none]").forEach(b=>b.onclick=()=>bulk(groups[+b.dataset.none][1],false));
+  box.querySelectorAll(".p").forEach(el=>wireRow(el));
+  renderTally();
+}
+function rowHTML(p){
+  const dis=canWrite?"":"disabled";
+  const cote=p.pos==="G"?'<span class="nog">—</span>':
+    canWrite?`<select data-f="cote" aria-label="Cote de ${esc(full(p))}">${[1,2,3,4,5].map(n=>`<option ${n===p.cote?"selected":""}>${n}</option>`).join("")}</select>`
+    :`<span class="cote-ro">${p.cote}</span>`;
+  const manage=canWrite&&managing?`<div class="manage">
+      <label>Position <select data-f="pos">${["A","D","G"].map(x=>`<option value="${x}" ${x===p.pos?"selected":""}>${POSNAME[x]}</option>`).join("")}</select></label>
+      <label><input type="checkbox" data-f="sub" ${p.sub?"checked":""}> Substitut</label>
+      <label><input type="checkbox" data-f="flex" ${p.flex?"checked":""}> Peut jouer D</label>
+      <span class="grow"></span>
+      <button class="small danger" data-del>Retirer</button>
+    </div>`:"";
+  return `<div class="p ${p.present?"on":""}" data-id="${esc(p.id)}">
+    <input type="checkbox" id="c-${esc(p.id)}" data-f="present" ${p.present?"checked":""} ${dis}>
+    <label class="who" for="c-${esc(p.id)}">${esc(full(p))}${p.flex&&p.pos==="A"?'<span class="flex-tag">peut jouer D</span>':""}</label>
+    <span class="pos ${p.pos}" title="${POSNAME[p.pos]||""}">${p.pos}</span>
+    ${cote}${manage}</div>`;
+}
+function wireRow(el){
+  const id=el.dataset.id, p=players.find(x=>x.id===id); if(!p) return;
+  el.querySelectorAll("[data-f]").forEach(inp=>inp.addEventListener("change",()=>{
+    const f=inp.dataset.f;
+    const v=f==="cote"?+inp.value:inp.type==="checkbox"?inp.checked:inp.value;
+    p[f]=v; setStatus("Enregistrement…",""); save(id,{[f]:v});
+    if(f==="present") el.classList.toggle("on",v);
+    if(f==="pos"||f==="sub"||f==="flex") render(); else renderTally();
+  }));
+  const del=el.querySelector("[data-del]");
+  if(del) del.onclick=async()=>{
+    if(del.dataset.armed!=="1"){del.dataset.armed="1";del.textContent="Confirmer le retrait";setTimeout(()=>{if(del.isConnected){del.dataset.armed="";del.textContent="Retirer"}},4000);return}
+    try{const j=await post({action:"remove",id}); applyServer(j.players)}catch(e){handleWriteError(e)}
+  };
+}
+function bulk(arr,val){
+  const ups=arr.filter(p=>p.present!==val).map(p=>{p.present=val;return {id:p.id,patch:{present:val}}});
+  render(); saveMany(ups);
+}
+function renderTally(){
+  const on=players.filter(p=>p.present);
+  const n=pos=>on.filter(p=>p.pos===pos).length;
+  const g=n("G"),d=n("D"),a=n("A");
+  $("#tally").innerHTML=`<span class="chip ${g!==2?"warn":""}">${g} G</span><span class="chip ${d<4?"warn":""}">${d} D</span><span class="chip">${a} A</span><span class="chip">${d+a} patineurs</span>`;
+}
+
+/* ---------- Gestion ---------- */
+$("#manage-toggle").onclick=()=>{managing=!managing;render()};
+$("#reset-week").onclick=()=>{
+  const b=$("#reset-week");
+  if(b.dataset.armed!=="1"){b.dataset.armed="1";b.textContent="Confirmer : réguliers présents, substituts absents";setTimeout(()=>{b.dataset.armed="";b.textContent="Nouvelle semaine"},5000);return}
+  b.dataset.armed="";b.textContent="Nouvelle semaine";
+  const ups=players.filter(p=>p.present!==!p.sub).map(p=>{p.present=!p.sub;return {id:p.id,patch:{present:!p.sub}}});
+  render(); saveMany(ups); $("#reset-msg").textContent="Présences remises à zéro.";
+};
+$("#add-form").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const prenom=$("#add-prenom").value.trim(), nom=$("#add-nom").value.trim();
+  if(!prenom||!nom) return;
+  const id=slug(prenom+" "+nom);
+  if(players.some(p=>p.id===id)){$("#add-msg").textContent=`${prenom} ${nom} est déjà dans la liste.`;return}
+  const sub=$("#add-sub").checked, pos=$("#add-pos").value;
+  $("#add-msg").textContent="Ajout…";
+  try{
+    const j=await post({action:"add",player:{id,prenom,nom,pos,cote:pos==="G"?0:+$("#add-cote").value,sub,flex:false,present:!sub}});
+    applyServer(j.players);
+    $("#add-msg").textContent=`${prenom} ${nom} ajouté.`; $("#add-form").reset(); $("#add-cote").value="3";
+  }catch(err){$("#add-msg").textContent="Ajout non enregistré : "+err.message}
+});
+
+/* ---------- Sondage Messenger ---------- */
+$("#apply-paste").onclick=()=>{
+  const lines=$("#paste").value.split(/\n|,|;/).map(s=>s.trim()).filter(Boolean);
+  const found=new Set(), unknown=[], ambiguous=[];
+  for(const line of lines){
+    const l=norm(line); if(!l) continue;
+    let m=players.filter(p=>l.includes(norm(full(p)))||(norm(full(p)).includes(l)&&l.split(" ").length>1));
+    if(!m.length){const first=l.split(" ")[0]; m=players.filter(p=>norm(p.prenom)===first||norm(p.prenom).replace(/ /g,"")===l.replace(/ /g,""));}
+    if(m.length===1) found.add(m[0].id); else if(m.length>1) ambiguous.push(line); else unknown.push(line);
+  }
+  if(found.size){
+    const ups=players.filter(p=>p.present!==found.has(p.id)).map(p=>{p.present=found.has(p.id);return {id:p.id,patch:{present:p.present}}});
+    render(); saveMany(ups);
+  }
+  const parts=[`${found.size} joueur(s) cochés.`];
+  if(ambiguous.length) parts.push(`Plusieurs joueurs possibles pour : ${ambiguous.join(", ")}. Coche-les à la main.`);
+  if(unknown.length) parts.push(`Non reconnus : ${unknown.join(", ")}.`);
+  const msg=$("#paste-msg"); msg.textContent=parts.join(" "); msg.hidden=false;
+};
+
+/* ---------- Formation des équipes ---------- */
+const sum=a=>a.reduce((s,p)=>s+(p.cote||0),0);
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function build(){
+  const on=players.filter(p=>p.present);
+  const G=on.filter(p=>p.pos==="G"), D0=on.filter(p=>p.pos==="D"), A0=on.filter(p=>p.pos==="A");
+  const flexA=A0.filter(p=>p.flex), D_MIN=6;
+  let best=[], bestCost=Infinity;
+  for(let it=0;it<8000;it++){
+    const moved=flexA.filter(()=>Math.random()<.5);
+    const D=[...D0,...moved.map(p=>({...p,asD:true}))], A=A0.filter(p=>!moved.includes(p));
+    const posCost=(D.length%2?3:0)+Math.max(0,D_MIN-D.length)*3+moved.length;
+    const extraD=Math.random()<.5?0:1;
+    const extraA=(D.length%2&&A.length%2)?1-extraD:(Math.random()<.5?0:1);
+    const split=(arr,extra)=>{const s=shuffle(arr);const h=Math.floor(s.length/2)+(s.length%2&&extra===0?1:0);return [s.slice(0,h),s.slice(h)]};
+    const [d0,d1]=split(D,extraD),[a0,a1]=split(A,extraA);
+    const t0=sum(d0)+sum(a0), t1=sum(d1)+sum(a1);
+    const cost=posCost*20+Math.abs(t0-t1)*10+Math.abs(sum(d0)-sum(d1))*2+Math.abs(sum(a0)-sum(a1));
+    const key=[...d0,...a0].map(p=>p.id).sort().join()+"|"+moved.map(p=>p.id).sort().join();
+    if(cost<bestCost){bestCost=cost;best=[{d:[d0,d1],a:[a0,a1],key}]}
+    else if(cost===bestCost&&best.length<200&&!best.some(b=>b.key===key)) best.push({d:[d0,d1],a:[a0,a1],key});
+  }
+  const pick=best[Math.floor(Math.random()*best.length)];
+  const yan=G.find(p=>full(p)===WILD_G), others=shuffle(G.filter(p=>p!==yan));
+  const goalies=yan?[others,[yan]]:[others.filter((_,k)=>k%2===0),others.filter((_,k)=>k%2===1)];
+  return TEAMS.map((t,i)=>({...t,G:goalies[i],
+    D:(pick?pick.d[i]:[]).sort((x,y)=>y.cote-x.cote),
+    A:(pick?pick.a[i]:[]).sort((x,y)=>y.cote-x.cote)}));
+}
+function line(title,arr,showSum){
+  return `<div class="line"><h3><span>${title}</span>${showSum?`<span>${sum(arr)}</span>`:""}</h3><ul>${
+    arr.length?arr.map(p=>`<li><span>${esc(full(p))}${p.sub?'<span class="sub-tag">sub</span>':""}${p.asD?'<span class="flex-tag">attaquant à la D</span>':""}</span>${p.pos!=="G"?`<span class="r">${p.cote}</span>`:""}</li>`).join("")
+    :'<li><span class="note">Personne</span></li>'}</ul></div>`;
+}
+function thursdayLabel(){const d=new Date();d.setDate(d.getDate()+(4-d.getDay()+7)%7);return d.toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long"})}
+function renderTeams(teams){
+  $("#result").hidden=false;
+  $("#teams").innerHTML=teams.map(t=>{const tot=sum(t.D)+sum(t.A);return `<article class="team ${t.key}">
+    <div class="head"><div><div class="name">${t.name}</div><div class="jersey">${t.jersey} · ${t.D.length+t.A.length} patineurs</div></div>
+    <div class="score">${tot}<small>Cote totale</small></div></div>
+    <div class="body">${line("Gardien",t.G,false)}${line("Défense",t.D,true)}${line("Attaque",t.A,true)}</div></article>`}).join("");
+  const [a,b]=teams, diff=Math.abs(sum(a.D)+sum(a.A)-sum(b.D)-sum(b.A)), warn=[];
+  if(a.G.length!==1||b.G.length!==1) warn.push(`<span class="chip warn">${a.G.length+b.G.length} gardien(s) présent(s) : il en faut un par équipe</span>`);
+  if(a.D.length<2||b.D.length<2) warn.push('<span class="chip warn">Peu de défenseurs</span>');
+  $("#verdict").innerHTML=`<span class="big">${diff===0?"Match égal":"Écart de "+diff+" point"+(diff>1?"s":"")}</span>
+    <span class="chip">Défense ${sum(a.D)} – ${sum(b.D)}</span><span class="chip">Attaque ${sum(a.A)} – ${sum(b.A)}</span>${warn.join("")}`;
+  const txt=[`Hockey du ${thursdayLabel()}`,""].concat(...teams.map(t=>[
+    `${t.name.toUpperCase()} (${t.jersey.toLowerCase()})`,
+    `G : ${t.G.map(full).join(", ")||"à trouver"}`,
+    `D : ${t.D.map(p=>full(p)+(p.asD?" (attaquant à la D)":"")).join(", ")}`,
+    `A : ${t.A.map(full).join(", ")}`,""])).join("\n").trim();
+  $("#copy-text").textContent=txt; $("#copy-msg").textContent="";
+}
+function go(){
+  if(players.filter(p=>p.present&&p.pos!=="G").length<4){$("#go-msg").textContent="Coche au moins quatre patineurs.";return false}
+  $("#go-msg").textContent=""; lastTeams=build(); renderTeams(lastTeams); return true;
+}
+$("#go").onclick=()=>{if(go())$("#result").scrollIntoView({behavior:"smooth",block:"start"})};
+$("#reshuffle").onclick=go;
+$("#copy").onclick=()=>{
+  const t=$("#copy-text").textContent;
+  const fallback=()=>{const r=document.createRange();r.selectNodeContents($("#copy-text"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("#copy-msg").textContent="Texte sélectionné, fais Copier."};
+  try{navigator.clipboard.writeText(t).then(()=>$("#copy-msg").textContent="Copié. Colle-le dans le groupe.",fallback)}catch(e){fallback()}
+};
+
+/* ---------- Démarrage ---------- */
+pin=store.get("hj-pin"); canWrite=!!pin&&configured();
+render(); load();
+// Rafraîchit la liste toutes les 20 s pour voir les changements des autres admins
+setInterval(()=>{if(document.visibilityState==="visible"&&!inFlight) load()},20000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") load()});
+
+</script>
+</body>
+</html>
