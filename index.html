@@ -80,6 +80,10 @@ textarea{min-height:110px}
 .manage label{display:flex;gap:5px;align-items:center;font-size:.88rem;white-space:nowrap}
 .manage .grow{flex:1}
 
+.pos-group{display:grid;gap:6px}
+.pos-group+.pos-group{margin-top:6px}
+.pos-title{font-size:.85rem;font-weight:600;color:var(--ink);display:flex;gap:6px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:3px}
+.pos-title span{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
 .add{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end}
 .add label{display:grid;gap:3px;font-size:.85rem;color:var(--muted)}
 .add select{font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
@@ -295,12 +299,21 @@ function render(){
     <div style="display:grid;gap:8px;${gi?"margin-top:14px":""}">
       <div class="group-title"><span>${t} <span style="font-weight:500">(${arr.filter(p=>p.present).length}/${arr.length})</span></span>
       ${canWrite?`<span class="row"><button class="small" data-all="${gi}">Tous</button><button class="small" data-none="${gi}">Aucun</button></span>`:""}</div>
-      <div class="list">${arr.map(rowHTML).join("")||'<div class="note">Personne</div>'}</div>
+      ${gi===0?posSections(arr):`<div class="list">${arr.map(rowHTML).join("")||'<div class="note">Personne</div>'}</div>`}
     </div>`).join("");
   box.querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>bulk(groups[+b.dataset.all][1],true));
   box.querySelectorAll("[data-none]").forEach(b=>b.onclick=()=>bulk(groups[+b.dataset.none][1],false));
   box.querySelectorAll(".p").forEach(el=>wireRow(el));
   renderTally();
+}
+// Réguliers regroupés par position : gardiens, défenseurs, attaquants
+function posSections(arr){
+  return [["G","Gardiens"],["D","Défenseurs"],["A","Attaquants"]].map(([pos,label])=>{
+    const list=arr.filter(p=>p.pos===pos);
+    if(!list.length) return "";
+    return `<div class="pos-group"><div class="pos-title">${label} <span>${list.filter(p=>p.present).length}/${list.length}</span></div>
+      <div class="list">${list.map(rowHTML).join("")}</div></div>`;
+  }).join("");
 }
 function rowHTML(p){
   const dis=canWrite?"":"disabled";
